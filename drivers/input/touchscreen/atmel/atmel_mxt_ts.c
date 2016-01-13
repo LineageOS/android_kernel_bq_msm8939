@@ -527,9 +527,11 @@ struct mxt_data {
 #if defined(CONFIG_MXT_REPORT_VIRTUAL_KEY_SLOT_NUM)
 	struct kobject *properties_kobj;
 #endif
-    struct pinctrl *ts_pinctrl;
+        struct pinctrl *ts_pinctrl;
 	struct pinctrl_state *gpio_state_active;
 	struct pinctrl_state *gpio_state_suspend;
+
+        bool disable_keys;
 };
 
 static struct class *touchscreen_class;
@@ -615,6 +617,11 @@ static ssize_t mxt_plugin_clip_tag_show(struct device *dev,
 	struct device_attribute *attr, char *buf);
 #	endif
 #endif
+static ssize_t mxt_disable_keys_show(struct device *dev,
+	struct device_attribute *attr, char *buf);
+
+static ssize_t mxt_disable_keys_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count);
 
 
 //static void mxt_regulator_disable(struct mxt_data *data);
@@ -1706,6 +1713,9 @@ static void mxt_input_button(struct mxt_data *data, u8 *message)
 	if (!data->enable_reporting)
 		return;
 
+	if(data->disable_keys)
+		return;
+
 	/* Active-low switch */
 	for (i = 0; i < pdata->t19_num_keys; i++) {
 		if (pdata->t19_keymap[i] == KEY_RESERVED)
@@ -2119,6 +2129,9 @@ static void mxt_proc_t15_messages(struct mxt_data *data, u8 *msg)
 		return;
 	
 	if (!data->enable_reporting)
+		return;
+
+	if (data->disable_keys)
 		return;
 
 	if (!data->pdata->keymap || !data->pdata->num_keys)
@@ -5379,6 +5392,9 @@ static DEVICE_ATTR(gesture_trace, /*S_IWUSR |*/ S_IRUSR, mxt_plugin_gesture_trac
 static DEVICE_ATTR(self_tune, S_IWUSR, NULL, mxt_self_tune_store);
 #endif
 
+static DEVICE_ATTR(disable_keys, S_IWUSR | S_IRUSR, mxt_disable_keys_show,
+		        mxt_disable_keys_store);
+
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_devcfg_crc.attr,
 	&dev_attr_fw_version.attr,
@@ -5417,6 +5433,7 @@ static struct attribute *mxt_attrs[] = {
 #if defined(CONFIG_MXT_SELFCAP_TUNE)
 	&dev_attr_self_tune.attr,
 #endif
+	&dev_attr_disable_keys.attr,
 	NULL
 };
 
@@ -6341,6 +6358,29 @@ static void mxt_late_resume(struct early_suspend *es)
 static SIMPLE_DEV_PM_OPS(mxt_pm_ops, mxt_suspend, mxt_resume);
 #endif
 #endif
+
+static ssize_t mxt_disable_keys_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct mxt_data *data = dev_get_drvdata(dev);
+	char c = data->disable_keys ? '1' : '0';
+	return sprintf(buf, "%c\n", c);
+}
+
+static ssize_t mxt_disable_keys_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct mxt_data *data = dev_get_drvdata(dev);
+	int i;
+
+	if (sscanf(buf, "%u", &i) == 1 && i < 2) {
+		data->disable_keys = (i == 1);
+		return count;
+	} else {
+		dev_dbg(dev, "disable_keys write error\n");
+		return -EINVAL;
+	}
+}
 
 static void mxt_shutdown(struct i2c_client *client)
 {
