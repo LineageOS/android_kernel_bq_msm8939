@@ -22,7 +22,12 @@ DEFINE_MSM_MUTEX(msm_actuator_mutex);
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 #define MAX_QVALUE  4096
-
+#ifdef CONFIG_VEGETALTE_COMMON
+uint16_t inf_code = 0;
+uint16_t macro_code = 0;
+uint16_t inf_adj_otp = 0;
+uint16_t macro_adj_otp = 0;
+#endif
 static struct v4l2_file_operations msm_actuator_v4l2_subdev_fops;
 
 #define PARK_LENS_LONG_STEP 7
@@ -84,7 +89,13 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 	uint16_t value = 0;
 	uint32_t size = a_ctrl->reg_tbl_size, i = 0;
 	struct msm_camera_i2c_reg_array *i2c_tbl = a_ctrl->i2c_reg_tbl;
-
+#ifdef CONFIG_VEGETALTE_COMMON
+	int16_t pos_value = next_lens_position;
+	inf_code = 404;
+	macro_code = 693;
+	inf_adj_otp = 20;
+	macro_adj_otp = 100;
+#endif
 	CDBG("Enter\n");
 	for (i = 0; i < size; i++) {
 		/* check that the index into i2c_tbl cannot grow larger that
@@ -145,7 +156,21 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 				}
 			}
 		} else if (write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC_DW9800W) {
+#ifdef CONFIG_VEGETALTE_COMMON
+			if(macro_code <= inf_code)
+			{
+				pr_err("ERROR ! af:macro_code:%d,inf_code:%d\n", macro_code,inf_code);
+				return ;
+			}
+			if(macro_code> 1023 - macro_adj_otp)
+			{
+				macro_code = 1023 - macro_adj_otp;
+			}
+			pos_value = (next_lens_position*((macro_code+macro_adj_otp)-(inf_code-inf_adj_otp))/1024+(inf_code-inf_adj_otp));
+                        value = (pos_value <<
+#else
                         value = (next_lens_position <<
+#endif
                                 write_arr[i].data_shift) |
                                 ((hw_dword & write_arr[i].hw_mask) >>
                                 write_arr[i].hw_shift);
@@ -154,7 +179,11 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
                                 i2c_byte1 = write_arr[i].reg_addr;
                                 i2c_byte2 = value;
                                 if (size != (i+1)) {
+#ifdef CONFIG_VEGETALTE_COMMON
+                                        i2c_byte2 = (value & 0xFF00) >> 8;
+#else
                                         i2c_byte2 = (value & 0x300)>>8;
+#endif
                                         CDBG("byte1:0x%x, byte2:0x%x\n",
                                                 i2c_byte1, i2c_byte2);
                                         i2c_tbl[a_ctrl->i2c_tbl_index].
@@ -168,6 +197,11 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
                                         i2c_byte1 = write_arr[i].reg_addr;
                                         i2c_byte2 = (value & 0xFF);
                                 }
+#ifdef CONFIG_VEGETALTE_COMMON
+			} else {
+				i2c_byte1 = (value & 0xFF00) >> 8;
+				i2c_byte2 = value & 0xFF;
+#endif
 			}
 		} else {
 			i2c_byte1 = write_arr[i].reg_addr;
