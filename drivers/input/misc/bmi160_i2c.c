@@ -277,6 +277,7 @@ static int bmi_i2c_probe(struct i2c_client *client,
 			goto exit_err_clean;
 		}
 
+		client_data->i2c = client;
 		client_data->device.bus_read = bmi_i2c_read_wrapper;
 		client_data->device.bus_write = bmi_i2c_write_wrapper;
 
