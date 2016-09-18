@@ -1515,7 +1515,6 @@ static int mtp_bind_config(struct usb_configuration *c, bool ptp_config)
 	dev->function.unbind = mtp_function_unbind;
 	dev->function.set_alt = mtp_function_set_alt;
 	dev->function.disable = mtp_function_disable;
-	is_ptp = ptp_config;
 
 	dev->is_ptp = ptp_config;
 	return usb_add_function(c, &dev->function);
