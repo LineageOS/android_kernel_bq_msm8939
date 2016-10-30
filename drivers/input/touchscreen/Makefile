@@ -86,6 +86,7 @@ obj-$(CONFIG_INPUT_MT_WRAPPER)		+= input_mt_wrapper.o
 obj-$(CONFIG_TOUCHSCREEN_IT7260_I2C)    += it7258_ts_i2c.o
 obj-$(CONFIG_TOUCHSCREEN_HIMAX852X)	+= himax852x/
 obj-$(CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5)	+= cyttsp5/
+obj-$(CONFIG_TOUCHSCREEN_HIMAX_HX852xES)      += hx852xes/
 
 obj-y	+= lct_tp_fm_info.o
 obj-y	+= lct_ctp_selftest.o
