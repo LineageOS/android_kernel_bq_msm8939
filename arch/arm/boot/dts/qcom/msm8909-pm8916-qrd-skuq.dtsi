@@ -35,12 +35,36 @@
 
 };
 
+/{
+	qrd_batterydata: qcom,battery-data {
+		qcom,rpull-up-kohm = <0>;
+		qcom,vref-batt-therm = <1800000>;
+
+		#include "batterydata-qrd-skuq-4v35-2500mah.dtsi"
+	};
+};
+
 &pm8916_chg {
+	qcom,vddmax-mv = <4350>;
+	qcom,vddsafe-mv = <4380>;
+	qcom,vinmin-mv = <4470>;
+	qcom,tchg-mins = <360>;
+	qcom,disable-vbatdet-based-recharge;
 	status = "ok";
 };
 
 &pm8916_bms {
+	qcom,battery-data = <&qrd_batterydata>;
+	qcom,resume-soc = <95>;
+	qcom,use-reported-soc;
+	qcom,force-bms-active-on-charger;
 	status = "ok";
+};
+
+&pm8916_vadc {
+	chan@30 {
+		qcom,scale-function = <12>;
+	};
 };
 
 &soc {
@@ -149,7 +173,7 @@
 			interrupts = <96 0x2002>;
 			vdd-supply = <&pm8916_l17>;
 			vio-supply = <&pm8916_l6>;
-			bosch,place = <5>;
+			bosch,place = <7>;
 			bosch,gpio-int1 = <&msm_gpio 96 0x2002>;
 		};
 
@@ -158,7 +182,7 @@
 			reg = <0x30>;
 			vdd-supply = <&pm8916_l17>;
 			vio-supply = <&pm8916_l6>;
-			memsic,dir = "obverse-x-axis-forward";
+			memsic,dir = "reverse-x-axis-forward";
 			memsic,auto-report;
 		};
 
@@ -179,6 +203,23 @@
 			stk,ps-thdh = <150>;
 			stk,ps-thdl = <100>;
 			stk,use-fir;
+		};
+	};
+
+	i2c@78b9000 {
+		status = "ok";
+		himax-ts@48 {
+			compatible = "himax,852xes";
+			reg  = <0x48>;
+			interrupt-parent = <&msm_gpio>;
+			interrupts = <13 0x2>;
+			vdd_ana-supply = <&pm8916_l17>;
+			vcc_i2c-supply = <&pm8916_l6>;
+			himax,panel-coords = <0 720 0 1280>;
+			himax,display-coords = <0 720 0 1280>;
+			himax,irq-gpio  = <&msm_gpio 13 0x00>;
+			himax,rst-gpio  = <&msm_gpio 12 0x00>;
+			report_type = <1>;
 		};
 	};
 };
