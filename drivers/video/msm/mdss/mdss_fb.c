@@ -1422,7 +1422,7 @@ static int mdss_fb_blank_blank(struct msm_fb_data_type *mfd,
 	return ret;
 }
 
-#if  defined(CONFIG_PICMT_COMMON)
+#if  defined(CONFIG_PAELLA_COMMON)
 static bool boot_mode_charge;
 static int __init mdss_fb_boot_mode(char *opt)
 {
@@ -1484,7 +1484,7 @@ static int mdss_fb_blank_unblank(struct msm_fb_data_type *mfd)
 				msecs_to_jiffies(mfd->idle_time));
 	}
 
-#if  defined(CONFIG_PICMT_COMMON)
+#if  defined(CONFIG_PAELLA_COMMON)
 	if (boot_mode_charge)
 	goto error;
 #endif

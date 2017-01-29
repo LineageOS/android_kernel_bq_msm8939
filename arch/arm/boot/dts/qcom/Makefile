@@ -80,8 +80,8 @@ dtb-$(CONFIG_ARCH_MSM8909) += msm8909-sim.dtb \
 
 ifeq ($(CONFIG_PICCOLO_COMMON),y)
 dtb-$(CONFIG_ARCH_MSM8916) +=  piccolo-msm8939-qrd-skuk.dtb
-else ifeq ($(CONFIG_PICMT_COMMON),y)
-dtb-$(CONFIG_ARCH_MSM8916) +=  picmt-msm8916-qrd-skui.dtb
+else ifeq ($(CONFIG_PAELLA_COMMON),y)
+dtb-$(CONFIG_ARCH_MSM8916) +=  paella-msm8916-qrd-skui.dtb
 else ifeq ($(CONFIG_VEGETALTE_COMMON),y)
 dtb-$(CONFIG_ARCH_MSM8916) +=  vegetalte-msm8916-qrd-skui.dtb
 else

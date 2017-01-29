@@ -57,8 +57,8 @@
 
 #define PA12200001_DRV_NAME	"pa12200001"
 #define DRIVER_VERSION		"1.06"
-#define PA1220_PICMT_CAL_MULT	25
-#define PA1220_PICMT_CAL_DIV	10
+#define PA1220_PAELLA_CAL_MULT	25
+#define PA1220_PAELLA_CAL_DIV	10
 
 #define MISC_DEV_NAME		"alsps_dev"
 #define PS_CAL_FILE_PATH	"/persist/xtalk_cal"
@@ -726,7 +726,7 @@ static int pa12200001_get_lux_value(struct i2c_client *client)
         pa12200001_adjust_als_threshold(client,als_adc); //Dynamic Threshold
 
     lux = (als_adc * pa12200001_range[range]) >> 10;
-	lux = lux * PA1220_PICMT_CAL_MULT / PA1220_PICMT_CAL_DIV; // Calibration for PICMT 
+	lux = lux * PA1220_PAELLA_CAL_MULT / PA1220_PAELLA_CAL_DIV; // Calibration for PAELLA
     return lux;
 }
 #endif

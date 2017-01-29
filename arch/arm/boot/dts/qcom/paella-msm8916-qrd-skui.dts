@@ -12,8 +12,8 @@
 
 /dts-v1/;
 
-#include "picmt/picmt-msm8916-qrd-skui.dtsi"
-#include "picmt/picmt-msm8916-memory.dtsi"
+#include "paella/paella-msm8916-qrd-skui.dtsi"
+#include "paella/paella-msm8916-memory.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. MSM 8916 QRD SKUI";

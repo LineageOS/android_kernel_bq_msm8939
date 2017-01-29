@@ -1862,7 +1862,7 @@ static void *def_msm8x16_wcd_mbhc_cal(void)
 	btn_low[4] = 500; //475;	// BTN_4	
 	btn_high[4] = 500; //475;
 #else	 
-#if  defined(CONFIG_PICMT_COMMON)
+#if  defined(CONFIG_PAELLA_COMMON)
 	btn_low[0] = 75;	// BTN_0
 	btn_high[0] = 75;
 	btn_low[1] = 100;	// BTN_1	

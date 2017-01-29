@@ -1458,7 +1458,7 @@ config PICCOLO_COMMON
     help
         Support for the L9101 longcheer board.
 	  
-config PICMT_COMMON
+config PAELLA_COMMON
     default n
     bool "Longcheer L8720 board"
     help

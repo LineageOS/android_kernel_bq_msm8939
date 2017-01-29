@@ -105,7 +105,7 @@
 
 #include "../msm8916-coresight.dtsi"
 #include "../msm8916-smp2p.dtsi"
-#include "picmt-msm8916-pinctrl.dtsi"
+#include "paella-msm8916-pinctrl.dtsi"
 #include "../msm8916-camera.dtsi"
 #include "../msm8916-ipcrouter.dtsi"
 #include "../msm-gdsc-8916.dtsi"
@@ -1956,7 +1956,7 @@
 };
 
 #include "../msm-pm8916-rpm-regulator.dtsi"
-#include "picmt-msm-pm8916.dtsi"
+#include "paella-msm-pm8916.dtsi"
 #include "../msm8916-regulator.dtsi"
 #include "../msm8916-pm.dtsi"
 
