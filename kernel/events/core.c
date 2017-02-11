@@ -821,7 +821,7 @@ static void put_ctx(struct perf_event_context *ctx)
  *   synchronize_rcu();
  *   perf_install_in_context();
  *
- * to affect the change. The remove_from_context()  synchronize_rcu() should
+ * to affect the change. The remove_from_context() + synchronize_rcu() should
  * quiesce the event, after which we can install it in the new location. This
  * means that only external vectors (perf_fops, prctl) can perturb the event
  * while in transit. Therefore all such accessors should also acquire
