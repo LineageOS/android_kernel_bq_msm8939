@@ -125,6 +125,7 @@ tCsrIgnoreChannels countryIgnoreList[MAX_COUNTRY_IGNORE] = { };
 extern tSirRetStatus wlan_cfgGetStr(tpAniSirGlobal, tANI_U16, tANI_U8*, tANI_U32*);
 
 void csrScanGetResultTimerHandler(void *);
+void csr_handle_disable_scan(void *pv);
 static void csrPurgeScanResultByAge(void *pv);
 void csrScanIdleScanTimerHandler(void *);
 static void csrSetDefaultScanTiming( tpAniSirGlobal pMac, tSirScanType scanType, tCsrScanRequest *pScanRequest);
@@ -236,6 +237,15 @@ eHalStatus csrScanOpen( tpAniSirGlobal pMac )
             smsLog(pMac, LOGE, FL("cannot allocate memory for idleScan timer"));
             break;
         }
+        status = vos_timer_init(&pMac->scan.disable_scan_during_sco_timer,
+                                VOS_TIMER_TYPE_SW,
+                                csr_handle_disable_scan,
+                                pMac);
+        if (!HAL_STATUS_SUCCESS(status)) {
+            smsLog(pMac, LOGE,
+                   FL("cannot allocate memory for disable_scan_during_sco_timer"));
+            break;
+        }
     }while(0);
     
     return (status);
@@ -264,6 +274,7 @@ eHalStatus csrScanClose( tpAniSirGlobal pMac )
     vos_timer_destroy(&pMac->scan.hTimerStaApConcTimer);
 #endif
     vos_timer_destroy(&pMac->scan.hTimerIdleScan);
+    vos_timer_destroy(&pMac->scan.disable_scan_during_sco_timer);
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2210,8 +2221,9 @@ static tANI_S32 csrFindCongestionScore (tpAniSirGlobal pMac, tCsrScanResult *pBs
 
     if (bssInfo->rssi < pMac->roam.configParam.PERMinRssiThresholdForRoam) {
         smsLog(pMac, LOG1,
-               FL("discrarding candidate due to low rssi=%d bssid "
+               FL("discarding candidate due to low rssi=%d than %d, bssid "
                MAC_ADDRESS_STR), bssInfo->rssi,
+               pMac->roam.configParam.PERMinRssiThresholdForRoam,
                MAC_ADDR_ARRAY(pBss->Result.BssDescriptor.bssId));
         return 0;
     }
@@ -2279,6 +2291,18 @@ static tANI_S32 csrFindSelfCongestionScore(tpAniSirGlobal pMac,
 
     if (pSession == NULL)
         return -1;
+
+    if (bssInfo->rssi < pMac->roam.configParam.PERMinRssiThresholdForRoam) {
+        smsLog(pMac, LOG1,
+               FL("Current AP has low rssi=%d than %d"), bssInfo->rssi,
+               pMac->roam.configParam.PERMinRssiThresholdForRoam);
+        /*
+         * Make Current candidate score as zero which will cause roaming
+         * in low RSSI scenarios
+         */
+        pMac->currentBssScore = 0;
+        return 0;
+    }
 
     for (i = 0; i <= pMac->PERroamCandidatesCnt; i++)
         if (pMac->candidateChannelInfo[i].channelNumber == bssInfo->channelId)
@@ -2708,8 +2732,8 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                     {
                         pTmpResult = GET_BASE_ADDR( pTmpEntry, tCsrScanResult, Link );
                         /* Skip the bssid hint AP, as it should be on head */
-                        if (pFilter &&
-                           vos_mem_compare(pResult->Result.BssDescriptor.bssId,
+                        if (pFilter && vos_mem_compare(
+                           pTmpResult->Result.BssDescriptor.bssId,
                            pFilter->bssid_hint, VOS_MAC_ADDR_SIZE)) {
                            pTmpEntry = csrLLNext(&pRetList->List,
                                                   pTmpEntry, LL_ACCESS_NOLOCK);
@@ -6884,7 +6908,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                         }
                         else
                             csrValidateScanChannels(pMac, pDstReq, pSrcReq,
-                                                    new_index, ch144_support);
+                                                    &new_index, ch144_support);
                         pDstReq->ChannelInfo.numOfChannels = new_index;
 #ifdef FEATURE_WLAN_LFR
                         if ( ( ( eCSR_SCAN_HO_BG_SCAN ==
@@ -7053,6 +7077,21 @@ void csrScanGetResultTimerHandler(void *pv)
     csrScanRequestResult(pMac);
 
     vos_timer_start(&pMac->scan.hTimerGetResult, CSR_SCAN_GET_RESULT_INTERVAL/PAL_TIMER_TO_MS_UNIT);
+}
+
+
+void csr_handle_disable_scan(void *pv)
+{
+    tpAniSirGlobal mac = PMAC_STRUCT(pv);
+
+    if (mac->scan.disable_scan_during_sco_timer_info.callback)
+        mac->scan.disable_scan_during_sco_timer_info.callback(
+        mac,
+        mac->scan.disable_scan_during_sco_timer_info.dev,
+        mac->scan.disable_scan_during_sco_timer_info.scan_id,
+        eHAL_STATUS_SUCCESS);
+    else
+        smsLog(mac, LOGE, FL("Callback is NULL"));
 }
 
 #ifdef WLAN_AP_STA_CONCURRENCY
@@ -9364,7 +9403,7 @@ void UpdateCCKMTSF(tANI_U32 *timeStamp0, tANI_U32 *timeStamp1, tANI_U32 *incr)
 #endif
 
 void csrValidateScanChannels(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq,
-        tCsrScanRequest *pSrcReq, int new_index, tANI_U8 ch144_support)
+        tCsrScanRequest *pSrcReq, tANI_U32 *new_index, tANI_U8 ch144_support)
 {
 
     int index;
@@ -9415,9 +9454,9 @@ void csrValidateScanChannels(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq,
                             continue;
                         }
 
-            pDstReq->ChannelInfo.ChannelList[new_index] =
+            pDstReq->ChannelInfo.ChannelList[*new_index] =
                 pSrcReq->ChannelInfo.ChannelList[index];
-            new_index++;
+            (*new_index)++;
         }
     }
 }
