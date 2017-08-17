@@ -421,7 +421,6 @@ typedef enum
   WDI_EXTSCAN_SCAN_RESULT_IND,
   WDI_EXTSCAN_GET_CAPABILITIES_IND,
   WDI_EXTSCAN_BSSID_HOTLIST_RESULT_IND,
-  WDI_EXTSCAN_SSID_HOTLIST_RESULT_IND,
 #endif
   /*Delete BA Ind*/
   WDI_DEL_BA_IND,
@@ -3564,14 +3563,14 @@ typedef struct
   /*BSSID for which the Probe Template is to be used*/
   wpt_macAddr     macBSSID;
 
-  /*Probe response template*/
-  wpt_uint8      *pProbeRespTemplate[WDI_PROBE_RSP_TEMPLATE_SIZE];
-
   /*Template Len*/
   wpt_uint32      uProbeRespTemplateLen;
 
   /*Bitmap for the IEs that are to be handled at SLM level*/
   wpt_uint32      uaProxyProbeReqValidIEBmap[WDI_PROBE_REQ_BITMAP_IE_LEN];
+
+  /*Probe response template*/
+  wpt_uint8      *pProbeRespTemplate;
 
 }WDI_UpdateProbeRspTemplateInfoType;
 
@@ -6126,7 +6125,6 @@ typedef struct
 #define WDI_WLAN_EXTSCAN_MAX_CHANNELS                 16
 #define WDI_WLAN_EXTSCAN_MAX_BUCKETS                  16
 #define WDI_WLAN_EXTSCAN_MAX_HOTLIST_APS              128
-#define WDI_WLAN_EXTSCAN_MAX_HOTLIST_SSID             8
 
 typedef enum
 {
@@ -6234,14 +6232,6 @@ typedef struct
 
 typedef struct
 {
-   WDI_MacSSid  ssid;     /* SSID */
-   wpt_uint8 band;    /* band */
-   wpt_int32 lowRssiThreshold; /* low threshold */
-   wpt_int32 highRssiThreshold; /* high threshold */
-} WDI_SSIDThresholdParam;
-
-typedef struct
-{
     wpt_int32   requestId;
     wpt_int8    sessionId;    // session Id mapped to vdev_id
     wpt_uint32  lostBssidSampleSize;
@@ -6260,21 +6250,6 @@ typedef struct
     wpt_boolean pause;
     wpt_uint32 reserved;
 } WDI_HighPriorityDataInfoIndParams;
-
-typedef struct
-{
-    wpt_int32   requestId;
-    wpt_int8    sessionId;    // session Id mapped to vdev_id
-    wpt_uint32  lostSsidSampleSize;
-    wpt_uint32   numSsid;        // number of hotlist APs
-    WDI_SSIDThresholdParam   ssid[WDI_WLAN_EXTSCAN_MAX_HOTLIST_SSID]; // hotlist SSIDs
-} WDI_EXTScanSetSSIDHotlistReqParams;
-
-typedef struct
-{
-    wpt_uint32    requestId;
-    wpt_uint8     sessionId;
-} WDI_EXTScanResetSSIDHotlistReqParams;
 
 #endif /* WLAN_FEATURE_EXTSCAN */
 
@@ -8409,10 +8384,8 @@ typedef void  (*WDI_EXTScanSetBSSIDHotlistRspCb)(void *pEventData,
                                        void *pUserData);
 typedef void  (*WDI_EXTScanResetBSSIDHotlistRspCb)(void *pEventData,
                                        void *pUserData);
-typedef void  (*WDI_EXTScanSetSSIDHotlistRspCb)(void *pEventData,
-                                       void *pUserData);
-typedef void  (*WDI_EXTScanResetSSIDHotlistRspCb)(void *pEventData,
-                                       void *pUserData);
+
+
 #endif /* WLAN_FEATURE_EXTSCAN */
 
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
@@ -8448,6 +8421,9 @@ typedef void  (*WDI_WifiConfigSetRspCb) (WDI_WifconfigSetRsp *wdiRsp, void *pUse
 
 typedef void (*WDI_AntennaDivSelRspCb)(WDI_Status status,
               void *resp, void *pUserData);
+
+typedef void (*wdi_nud_set_arp_rsp_cb)(void *event_data,void *user_data);
+typedef void (*wdi_nud_get_arp_rsp_cb)(void *event_data,void *user_data);
 
 /*========================================================================
  *     Function Declarations and Documentation
@@ -11862,40 +11838,6 @@ WDI_Status WDI_EXTScanResetBSSIDHotlistReq
 );
 
 /**
- @brief WDI_EXTScanSetSSIDHotlistReq
-    This API is called to send Set SSID Hotlist Request FW
-
- @param pwdiEXTScanSetBssidHotlistReqParams : pointer to the request params.
-        wdiEXTScanSetBSSIDHotlistRspCb   : callback on getting the response.
-        usrData : Client context
- @see
- @return SUCCESS or FAIL
-*/
-WDI_Status WDI_EXTScanSetSSIDHotlistReq
-(
-   WDI_EXTScanSetSSIDHotlistReqParams* pwdiEXTScanSetSSIDHotlistReqParams,
-   WDI_EXTScanSetSSIDHotlistRspCb     wdiEXTScanSetSSIDHotlistRspCb,
-   void*                   pUserData
-);
-
-/**
- @brief WDI_EXTScanResetSSIDHotlistReq
-    This API is called to send Reset SSID Hotlist Request FW
-
- @param pwdiEXTScanResetSsidHotlistReqParams : pointer to the request params.
-        wdiEXTScanGetCachedResultsRspCb   : callback on getting the response.
-        usrData : Client context
- @see
- @return SUCCESS or FAIL
-*/
-WDI_Status WDI_EXTScanResetSSIDHotlistReq
-(
-   WDI_EXTScanResetSSIDHotlistReqParams* pwdiEXTScanResetSSIDHotlistReqParams,
-   WDI_EXTScanResetSSIDHotlistRspCb     wdiEXTScanResetSSIDHotlistRspCb,
-   void*                   pUserData
-);
-
-/**
  @brief WDI_HighPriorityDataInfoInd
 
  @param pHighPriorityDataInfoIndParams: Req parameter for the FW
@@ -12237,4 +12179,54 @@ WDI_SetAllowedActionFramesInd(
 );
 
 void WDI_SetMgmtPktViaWQ5(wpt_boolean sendMgmtPktViaWQ5);
+
+/* ARP DEBUG STATS */
+typedef struct
+{
+   wpt_uint8 flag;
+   wpt_uint8 pkt_type;
+   wpt_uint32 ip_addr;
+} WDI_SetARPStatsParamsInfoType;
+
+typedef struct
+{
+  wpt_uint32 status;
+} WDI_SetARPStatsRspParamsType;
+
+typedef void (*WDI_SetARPStatsRspCb)(WDI_SetARPStatsRspParamsType* StatsRsp,
+                                     void* pUserData);
+
+WDI_Status
+WDI_SetARPStatsReq
+(
+  WDI_SetARPStatsParamsInfoType *pwdiSetStatsReqParams,
+  WDI_SetARPStatsRspCb          wdiSetARPStatsRspCb,
+  void*                      pUserData
+);
+
+/* ARP DEBUG STATS */
+typedef struct
+{
+   wpt_uint8 pkt_type;
+} WDI_GetARPStatsParamsInfoType;
+
+typedef struct
+{
+  wpt_uint32 status;
+  wpt_uint16 dad;
+  wpt_uint16 tx_fw_cnt;
+  wpt_uint16 rx_fw_cnt;
+  wpt_uint16 tx_ack_cnt;
+} WDI_GetARPStatsRspParamsType;
+
+typedef void (*WDI_GetARPStatsRspCb)(WDI_GetARPStatsRspParamsType* StatsRsp,
+                                     void* pUserData);
+
+WDI_Status
+WDI_GetARPStatsReq
+(
+  WDI_GetARPStatsParamsInfoType *pwdiGetStatsReqParams,
+  WDI_GetARPStatsRspCb          wdiGetARPStatsRspCb,
+  void*                      pUserData
+);
 #endif /* #ifndef WLAN_QCT_WDI_H */

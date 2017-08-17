@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -114,6 +114,9 @@
 #define CSR_JOIN_MAX_RETRY_COUNT             10
 #define CSR_JOIN_RETRY_TIMEOUT_PERIOD        ( 1 *  PAL_TIMER_TO_SEC_UNIT )  // 1 second
 #endif
+
+#define CSR_DISABLE_SCAN_DURING_SCO          100 //100 milliseconds
+
 
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 #define ROAMING_RSSI_WEIGHT 50
@@ -1104,6 +1107,6 @@ void csr_remove_bssid_from_scan_list(tpAniSirGlobal pMac,
 eHalStatus csrSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 cbMode);
 #endif
 void csrValidateScanChannels(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq,
-               tCsrScanRequest *pSrcReq, int new_index, tANI_U8 ch144_support);
+               tCsrScanRequest *pSrcReq, tANI_U32 *new_index, tANI_U8 ch144_support);
 #endif
 

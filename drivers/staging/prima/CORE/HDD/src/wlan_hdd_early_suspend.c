@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2157,6 +2157,7 @@ VOS_STATUS hdd_wlan_shutdown(void)
       return VOS_STATUS_E_FAILURE;
    }
 
+   vos_set_snoc_high_freq_voting(false);
    //Stop the traffic monitor timer
    if ((pHddCtx->cfg_ini->dynSplitscan)&& (VOS_TIMER_STATE_RUNNING ==
                         vos_timer_getCurrentState(&pHddCtx->tx_rx_trafficTmr)))
@@ -2317,7 +2318,35 @@ VOS_STATUS hdd_wlan_shutdown(void)
    return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * hdd_ssr_restart_sap() - restart sap on SSR
+ * @hdd_ctx:   hdd context
+ *
+ * Return:     nothing
+ */
+static void hdd_ssr_restart_sap(hdd_context_t *hdd_ctx)
+{
+	VOS_STATUS       status;
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	hdd_adapter_t *adapter;
 
+	ENTER();
+
+	status =  hdd_get_front_adapter (hdd_ctx, &adapter_node);
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = adapter_node->pAdapter;
+		if (adapter && adapter->device_mode == WLAN_HDD_SOFTAP) {
+			if (test_bit(SOFTAP_INIT_DONE, &adapter->event_flags)) {
+				hddLog(VOS_TRACE_LEVEL_INFO, FL("Restart prev SAP session"));
+				wlan_hdd_start_sap(adapter);
+			}
+		}
+		status = hdd_get_next_adapter(hdd_ctx, adapter_node, &next);
+		adapter_node = next;
+	}
+
+	EXIT();
+}
 
 /* the HDD interface to WLAN driver re-init.
  * This is called to initialize/start WLAN driver after a shutdown.
@@ -2366,7 +2395,8 @@ VOS_STATUS hdd_wlan_re_init(void)
    vos_set_reinit_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
    /* The driver should always be initialized in STA mode after SSR */
-   hdd_set_conparam(0);
+   if (VOS_STA_SAP_MODE != hdd_get_conparam())
+       hdd_set_conparam(0);
 
    dev = wcnss_wlan_get_device();
    if (NULL == dev)
@@ -2500,6 +2530,7 @@ VOS_STATUS hdd_wlan_re_init(void)
    pHddCtx->last_scan_reject_session_id = 0xFF;
    pHddCtx->last_scan_reject_reason = 0;
    pHddCtx->last_scan_reject_timestamp = 0;
+   pHddCtx->scan_reject_cnt = 0;
    pHddCtx->hdd_mcastbcast_filter_set = FALSE;
    pHddCtx->btCoexModeSet = FALSE;
    hdd_register_mcast_bcast_filter(pHddCtx);
@@ -2617,5 +2648,9 @@ err_re_init:
 success:
    /* Trigger replay of BTC events */
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+
+   if (pHddCtx->cfg_ini->sap_internal_restart)
+       hdd_ssr_restart_sap(pHddCtx);
+
    return VOS_STATUS_SUCCESS;
 }

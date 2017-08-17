@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -143,7 +143,6 @@ typedef tANI_U8 tSirVersionString[SIR_VERSION_STRING_LEN];
 #define WLAN_EXTSCAN_MAX_BUCKETS                  16
 #define WLAN_EXTSCAN_MAX_HOTLIST_APS              128
 #define WLAN_EXTSCAN_MAX_RSSI_SAMPLE_SIZE     8
-#define WLAN_EXTSCAN_MAX_HOTLIST_SSIDS            8
 #endif /* WLAN_FEATURE_EXTSCAN */
 
 #define WLAN_DISA_MAX_PAYLOAD_SIZE                1600
@@ -2929,11 +2928,10 @@ typedef struct sSmeDelBAPeerInd
     // Message Type
     tANI_U16 mesgType;
 
-    tSirMacAddr bssId;//BSSID 
-
     // Message Length
     tANI_U16 mesgLen;
 
+    tSirMacAddr bssId;//BSSID
     // Station Index
     tANI_U16 staIdx;
 
@@ -3703,6 +3701,8 @@ typedef enum DFSChanScanType
 #define SIR_COEX_IND_TYPE_CXM_FEATURES_NOTIFICATION (8)
 #define SIR_COEX_IND_TYPE_TDLS_ENABLE  (6)
 #define SIR_COEX_IND_TYPE_TDLS_DISABLE (7)
+#define SIR_COEX_IND_TYPE_HID_CONNECTED_WLAN_CONNECTED_IN_2p4 (9)
+#define SIR_COEX_IND_TYPE_HID_DISCONNECTED_WLAN_CONNECTED_IN_2p4 (10)
 
 typedef struct sSirSmeCoexInd
 {
@@ -3789,9 +3789,56 @@ typedef struct
   tANI_U32 reserved2;
 }tAniLoggingInitRsp, *tpAniLoggingInitRsp;
 
+/**
+ * struct rsp_stats - arp packet stats
+ * @status: success or failure
+ * @tx_fw_cnt: tx packets count
+ * @tx_ack_cnt: tx acknowledgement count
+ */
+typedef struct {
+   uint32_t status;
+   uint16_t dad;
+   uint16_t tx_fw_cnt;
+   uint16_t tx_ack_cnt;
+   uint16_t rx_fw_cnt;
+} rsp_stats;
+
+typedef void(*setArpStatsReqCb)(void *data, VOS_STATUS rsp);
+
+/**
+ * struct setArpStatsParams - set/reset arp stats
+ * @flag: enable/disable stats
+ * @pkt_type: type of packet(1 - arp)
+ * @ip_addr: subnet ipv4 address in case of encrypted packets
+ * @rsp_cb_fn: FW response callback api
+ * @data_ctx: parameter for callback api
+ */
+typedef struct {
+   uint8_t flag;
+   uint8_t pkt_type;
+   uint32_t ip_addr;
+   setArpStatsReqCb rsp_cb_fn;
+   void *data_ctx;
+} setArpStatsParams, *psetArpStatsParams;
+
+typedef void(*getArpStatsReqCb)(void *data, rsp_stats *rsp);
+/**
+ * struct getArpStatsParams - get arp stats from firmware
+ * @pkt_type: packet type(1 - ARP)
+ * @get_rsp_cb_fn: FW response callback api
+ * @data_ctx: parameter for callback api
+ */
+typedef struct {
+   uint8_t pkt_type;
+   getArpStatsReqCb get_rsp_cb_fn;
+   void *data_ctx;
+} getArpStatsParams, *pgetArpStatsParams;
+
 typedef void(*FWLoggingInitReqCb)(void *fwlogInitCbContext, tAniLoggingInitRsp *pRsp);
 typedef void ( *tGetFrameLogCallback) (void *pContext);
 typedef void(*RssiMonitorReqCb)(void *rssiMonitorCbContext, VOS_STATUS status);
+typedef void(*pktFilterReqCb)(void *data, tANI_U32 status);
+
 
 typedef struct sAniGetFrameLogReq
 {
@@ -4233,6 +4280,8 @@ typedef struct sSirRcvFltPktClearParam
   tANI_U8    filterId;
   tSirMacAddr selfMacAddr;
   tSirMacAddr bssId;
+  pktFilterReqCb     pktFilterCallback;
+  void        *cbCtx;
 }tSirRcvFltPktClearParam, *tpSirRcvFltPktClearParam;
 
 //
@@ -5580,22 +5629,6 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8 result[1];
 } tSirWifiScanResultEvent, *tpSirWifiScanResultEvent;
 
-/* WLAN_HAL_SSID_HOTLIST_RESULT_IND */
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    tANI_U32             requestId;
-    tANI_BOOLEAN         ssid_found;
-    tANI_U32             numHotlistSsid;     // numbers of SSIDs
-
-    /*
-     * 0 for last fragment
-     * 1 still more fragment(s) coming
-     */
-    tANI_BOOLEAN         moreData;
-    tSirWifiScanResult   ssidHotlist[1];
-} tSirEXTScanSsidHotlistMatch, *tpSirEXTScanSsidHotlistMatch;
-
 typedef PACKED_PRE struct PACKED_POST
 {
     tANI_U8       elemId;       // Element Identifier
@@ -5724,49 +5757,6 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U32      requestId;
     tANI_U32      status;
 } tSirEXTScanResetBssidHotlistRspParams, *tpSirEXTScanResetBssidHotlistRspParams;
-
-typedef struct
-{
-    tANI_U32      requestId;
-    tANI_U8       sessionId;
-} tSirEXTScanResetSsidHotlistReqParams, *tpSirEXTScanResetSsidHotlistReqParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    tANI_U32      requestId;
-    tANI_U32      status;
-} tSirEXTScanResetSsidHotlistRspParams, *tpSirEXTScanResetSsidHotlistRspParams;
-
-
-/**
- * struct sir_ssid_hotlist_param - param for SSID Hotlist
- * @ssid: SSID which is being hotlisted
- * @band: Band in which the given SSID should be scanned
- * @rssi_low: Low bound on RSSI
- * @rssi_high: High bound on RSSI
- */
-typedef struct
-{
-    tSirMacSSid ssid;
-    tANI_U8 band;
-    tANI_S32 rssi_low;
-    tANI_S32 rssi_high;
-}tSirSsidThresholdParam, *tpSirSsidThresholdParam;
-
-typedef struct
-{
-    tANI_U32 request_id;
-    tANI_U8 session_id;
-    tANI_U32 lost_ssid_sample_size;
-    tANI_U32 ssid_count;
-    tSirSsidThresholdParam ssid[WLAN_EXTSCAN_MAX_HOTLIST_SSIDS];
-}tSirEXTScanSetSsidHotListReqParams, *tpSirEXTScanSetSsidHotListReqParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    tANI_U32      requestId;
-    tANI_U32      status;
-} tSirEXTScanSetSsidHotListRspParams, *tpSirEXTScanSetSsidHotListRspParams;
 
 /*---------------------------------------------------------------------------
  *  * WLAN_HAL_EXTSCAN_RESULT_AVAILABLE_IND
@@ -6060,5 +6050,11 @@ typedef struct {
    tANI_U32  value;
 } tModifyRoamParamsReqParams, * tpModifyRoamParamsReqParams;
 
+typedef void(*hdd_conAliveCb)(void *data, bool status);
+
+typedef struct {
+   hdd_conAliveCb rsp_cb_fn;
+   void *data_ctx;
+}getConStatusParams, *pgetConStatusParams;
 
 #endif /* __SIR_API_H */
