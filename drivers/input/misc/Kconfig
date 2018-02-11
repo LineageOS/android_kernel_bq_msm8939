@@ -835,6 +835,12 @@ config SENSORS_BMA2X2
 	  If you say yes here, you get support for Bosch Sensortec's
 	  acceleration sensors BMA255/BMA254/BMA355/BMA250E/BMA222E/BMA280.
 
+config SENSORS_BMA2X2_COMMON
+	bool "BMA2x2 acceleration calibration"
+	depends on I2C
+	help
+	  for sensor calibration
+
 config SENSORS_BMA2X2_ENABLE_INT1
 	tristate "BMA2X2 acceleration sensor interrupt INT1 support"
 	depends on SENSORS_BMA2X2
@@ -862,6 +868,19 @@ config DOUBLE_TAP
 	depends on SENSORS_BMA2X2  && ( SENSORS_BMA2X2_ENABLE_INT1 || SENSORS_BMA2X2_ENABLE_INT2)
 	help
 	 If you say yes here, you get support Bosch double tap sensor function
+
+config SENSORS_BMG
+        tristate "Bosch Gyroscope Sensor Driver"
+        depends on I2C
+        help
+         If you say yes here, you get support for Bosch Sensortec's
+         gyroscope sensor drivers of BMG160/BMI055/BMI058 e.t.c.
+
+config SENSORS_BMG_FIFO
+	tristate "Bosch Gyroscope FIFO Support"
+	depends on SENSORS_BMG
+	help
+	If you say yes here, you get support for Gyroscope sensor FIFO operations.
 
 config SENSORS_BMI058
 	tristate "BMI058 Sensor Support"
@@ -903,6 +922,13 @@ config SENSORS_BMI160_ENABLE_INT2
 	help
 	 If you say yes here, you get INT2 support for Bosch Sensortec
 	 sensors BMI160.
+
+config SENSORS_BMM050
+	tristate "BMM050 Magnetic Sensor Driver"
+	depends on I2C
+	help
+	 If you say yes here, you get support for Bosch Sensortec's
+	 sensor BMM050 Magnetic Sensor
 
 config INPUT_LSM6DX0
      tristate "STMicroelectronics LSM6DS0 and LSM6DL0"
