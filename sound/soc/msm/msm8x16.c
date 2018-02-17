@@ -1658,7 +1658,7 @@ static void *def_msm8x16_wcd_mbhc_cal(void)
 	 * all btn_low corresponds to threshold for current source
 	 * all bt_high corresponds to threshold for Micbias
 	 */
-#if  defined(CONFIG_SPEAKER_EXT_PA)
+#if  defined(CONFIG_SPEAKER_EXT_PA) || defined(CONFIG_PRODUCT_VEGETALTE)
 	btn_low[0] = 75;	// BTN_0
 	btn_high[0] = 75;
 	btn_low[1] = 100;	// BTN_1	
