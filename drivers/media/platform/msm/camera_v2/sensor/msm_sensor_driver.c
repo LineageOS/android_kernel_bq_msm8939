@@ -657,7 +657,10 @@ int32_t msm_sensor_driver_probe(void *setting,
 
 	unsigned long                        mount_pos = 0;
 	uint32_t                             is_yuv;
+
+#ifndef CONFIG_PRODUCT_VEGETALTE
         uint8_t                              i;
+#endif
 
 	/* Validate input parameters */
 	if (!setting) {
@@ -747,6 +750,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 			slave_info->sensor_init_params.sensor_mount_angle);
 	}
 
+#ifndef CONFIG_PRODUCT_VEGETALTE
 	CDBG("camera eeprom_name = %s\n", slave_info->eeprom_name);
 	CDBG("slave_info->sensor_name = %s\n", slave_info->sensor_name);
 	for (i = 0; i < CAMERA_VENDOR_EEPROM_COUNT_MAX; i++) {
@@ -772,6 +776,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 		rc = -EFAULT;
 		goto free_slave_info;
 	}
+#endif
 
 	/* Validate camera id */
 	if (slave_info->camera_id >= MAX_CAMERAS) {

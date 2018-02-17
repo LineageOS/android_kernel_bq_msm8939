@@ -150,10 +150,19 @@ enum msm_actuator_addr_type {
 	MSM_ACTUATOR_WORD_ADDR,
 };
 
+#ifndef CONFIG_PRODUCT_VEGETALTE
 enum msm_actuator_write_type {
 	MSM_ACTUATOR_WRITE_HW_DAMP,
 	MSM_ACTUATOR_WRITE_DAC,
 };
+#else
+enum msm_actuator_write_type {
+	MSM_ACTUATOR_WRITE_HW_DAMP,
+	MSM_ACTUATOR_WRITE_DAC,
+	MSM_ACTUATOR_WRITE_DAC_DW9800W,
+	MSM_ACTUATOR_WRITE_DAC_AK7345,
+};
+#endif
 
 enum msm_actuator_i2c_operation {
 	MSM_ACT_WRITE = 0,

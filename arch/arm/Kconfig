@@ -1073,6 +1073,10 @@ source "arch/arm/mach-w90x900/Kconfig"
 
 source "arch/arm/mach-zynq/Kconfig"
 
+config PRODUCT_VEGETALTE
+	bool "VEGETALTE Product"
+	default n
+
 # Definitions to make life easier
 config ARCH_ACORN
 	bool
