@@ -84,7 +84,7 @@ dtb-$(CONFIG_ARCH_MSM8916) += msm8916-cdp.dtb \
 	piccolo-v3.0.dtb \
 	namek.dtb \
 	namek-v3.0.dtb \
-	picmt.dtb \
+	paella.dtb \
 	vegetalte.dtb \
 	msm8916-cdp-smb1360.dtb \
 	msm8916-mtp.dtb \

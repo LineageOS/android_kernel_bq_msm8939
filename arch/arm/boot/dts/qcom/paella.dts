@@ -20,7 +20,7 @@
 #include "dsi-panel-yushunNT35520-720p-cmd.dtsi"
 #include "dsi-panel-trulyHX8394-720p-video.dtsi"
 #include "dsi-panel-yushunNT35521S-720p-video.dtsi"
-#include "picmt-msm8916-camera-sensor-qrd-skui.dtsi"
+#include "paella-msm8916-camera-sensor-qrd-skui.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. MSM 8916 QRD SKUI";
