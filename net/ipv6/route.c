@@ -1149,7 +1149,7 @@ static void ip6_rt_update_pmtu(struct dst_entry *dst, struct sock *sk,
 }
 
 void ip6_update_pmtu(struct sk_buff *skb, struct net *net, __be32 mtu,
-		     int oif, u32 mark)
+		     int oif, u32 mark, kuid_t uid)
 {
 	const struct ipv6hdr *iph = (struct ipv6hdr *) skb->data;
 	struct dst_entry *dst;
@@ -1162,6 +1162,7 @@ void ip6_update_pmtu(struct sk_buff *skb, struct net *net, __be32 mtu,
 	fl6.daddr = iph->daddr;
 	fl6.saddr = iph->saddr;
 	fl6.flowlabel = ip6_flowinfo(iph);
+	fl6.flowi6_uid = uid;
 
 	dst = ip6_route_output(net, NULL, &fl6);
 	if (!dst->error)
@@ -1173,11 +1174,12 @@ EXPORT_SYMBOL_GPL(ip6_update_pmtu);
 void ip6_sk_update_pmtu(struct sk_buff *skb, struct sock *sk, __be32 mtu)
 {
 	ip6_update_pmtu(skb, sock_net(sk), mtu,
-			sk->sk_bound_dev_if, sk->sk_mark);
+			sk->sk_bound_dev_if, sk->sk_mark, sk->sk_uid);
 }
 EXPORT_SYMBOL_GPL(ip6_sk_update_pmtu);
 
-void ip6_redirect(struct sk_buff *skb, struct net *net, int oif, u32 mark)
+void ip6_redirect(struct sk_buff *skb, struct net *net, int oif, u32 mark,
+		  kuid_t uid)
 {
 	const struct ipv6hdr *iph = (struct ipv6hdr *) skb->data;
 	struct dst_entry *dst;
@@ -1190,6 +1192,7 @@ void ip6_redirect(struct sk_buff *skb, struct net *net, int oif, u32 mark)
 	fl6.daddr = iph->daddr;
 	fl6.saddr = iph->saddr;
 	fl6.flowlabel = ip6_flowinfo(iph);
+	fl6.flowi6_uid = uid;
 
 	dst = ip6_route_output(net, NULL, &fl6);
 	if (!dst->error)
@@ -1200,7 +1203,8 @@ EXPORT_SYMBOL_GPL(ip6_redirect);
 
 void ip6_sk_redirect(struct sk_buff *skb, struct sock *sk)
 {
-	ip6_redirect(skb, sock_net(sk), sk->sk_bound_dev_if, sk->sk_mark);
+	ip6_redirect(skb, sock_net(sk), sk->sk_bound_dev_if, sk->sk_mark,
+		     sk->sk_uid);
 }
 EXPORT_SYMBOL_GPL(ip6_sk_redirect);
 
@@ -2637,10 +2641,14 @@ static int inet6_rtm_getroute(struct sk_buff *in_skb, struct nlmsghdr* nlh)
 	if (tb[RTA_OIF])
 		oif = nla_get_u32(tb[RTA_OIF]);
 
+	if (tb[RTA_MARK])
+		fl6.flowi6_mark = nla_get_u32(tb[RTA_MARK]);
+
 	if (tb[RTA_UID])
-		fl6.flowi6_uid = nla_get_u32(tb[RTA_UID]);
+		fl6.flowi6_uid = make_kuid(current_user_ns(),
+					   nla_get_u32(tb[RTA_UID]));
 	else
-		fl6.flowi6_uid = (iif ? (uid_t) -1 : current_uid());
+		fl6.flowi6_uid = iif ? INVALID_UID : current_uid();
 
 	if (iif) {
 		struct net_device *dev;
