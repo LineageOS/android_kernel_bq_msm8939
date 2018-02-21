@@ -131,6 +131,17 @@
 		};
 	};
 
+	gen-vkeys {
+		compatible = "qcom,gen-vkeys";
+		label = "ft5x06_ts";
+		qcom,disp-maxx = <720>;
+		qcom,disp-maxy = <1280>;
+		qcom,panel-maxx = <720>;
+		qcom,panel-maxy = <1600>;
+		qcom,key-codes = <580 172 158>;
+		qcom,y-offset = <0>;
+	};
+
 	tlmm_pinmux: pinctrl@1000000 {
 		spi2_active {
 			status = "disabled";
