@@ -1713,7 +1713,7 @@ static void mxt_input_button(struct mxt_data *data, u8 *message)
 	if (!data->enable_reporting)
 		return;
 
-	if(data->disable_keys)
+	if (data->disable_keys)
 		return;
 
 	/* Active-low switch */
@@ -2131,9 +2131,6 @@ static void mxt_proc_t15_messages(struct mxt_data *data, u8 *msg)
 	if (!data->enable_reporting)
 		return;
 
-	if (data->disable_keys)
-		return;
-
 	if (!data->pdata->keymap || !data->pdata->num_keys)
 		return;
 
@@ -2192,6 +2189,9 @@ static void mxt_proc_t15_messages(struct mxt_data *data, u8 *msg)
 		return;
 	
 	if (!data->enable_reporting)
+		return;
+
+	if (data->disable_keys)
 		return;
 
 	if (!data->pdata->keymap || !data->pdata->num_keys)
